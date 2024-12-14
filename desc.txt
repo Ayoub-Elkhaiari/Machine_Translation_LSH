@@ -1,0 +1,339 @@
+1. The Word Embeddings Data for English and French Words
+Write a program that translates English to French.
+
+The Data
+The full dataset for English embeddings is about 3.64 gigabytes, and the French embeddings are about 629 megabytes. To prevent the Coursera workspace from crashing, we've extracted a subset of the embeddings for the words that you'll use in this assignment.
+
+Look at the data
+en_embeddings_subset: the key is an English word, and the value is a 300 dimensional array, which is the embedding for that word.
+
+'the': array([ 0.08007812,  0.10498047,  0.04980469,  0.0534668 , -0.06738281, ....
+fr_embeddings_subset: the key is a French word, and the value is a 300 dimensional array, which is the embedding for that word.
+
+'la': array([-6.18250e-03, -9.43867e-04, -8.82648e-03,  3.24623e-02,...
+Load two dictionaries mapping the English to French words
+A training dictionary
+and a testing dictionary. 
+Looking at the English French dictionary
+en_fr_train is a dictionary where the key is the English word and the value is the French translation of that English word.
+
+{'the': 'la',
+'and': 'et',
+'was': 'était',
+'for': 'pour',
+en_fr_test is similar to en_fr_train, but is a test set. We won't look at it until we get to testing.
+
+
+1.1 Generate Embedding and Transform Matrices
+
+Exercise 1 - get_matrices
+Translating English dictionary to French by using embeddings.
+
+You will now implement a function get_matrices, which takes the loaded data and returns matrices X and Y.
+
+Inputs:
+
+en_fr : English to French dictionary
+en_embeddings : English to embeddings dictionary
+fr_embeddings : French to embeddings dictionary
+Returns:
+
+Matrix X and matrix Y, where each row in X is the word embedding for an english word, and the same row in Y is the word embedding for the French version of that English word.
+alternate textFigure 1
+Use the en_fr dictionary to ensure that the ith row in the X matrix corresponds to the ith row in the Y matrix.
+
+Instructions: Complete the function get_matrices():
+
+Iterate over English words in en_fr dictionary.
+Check if the word have both English and French embedding.  2.1 - Translation as Linear Transformation of Embeddings
+Given dictionaries of English and French word embeddings you will create a transformation matrix R
+
+Given an English word embedding,  𝐞
+ , you can multiply  𝐞𝐑
+  to get a new word embedding  𝐟
+ .
+Both  𝐞
+  and  𝐟
+  are row vectors.
+You can then compute the nearest neighbors to f in the french embeddings and recommend the word that is most similar to the transformed word embedding.
+Describing translation as the minimization problem
+Find a matrix R that minimizes the following equation.
+
+argmin𝐑‖𝐗𝐑−𝐘‖𝐹(1)
+
+Frobenius norm
+The Frobenius norm of a matrix 𝐴
+ (assuming it is of dimension 𝑚,𝑛
+) is defined as the square root of the sum of the absolute squares of its elements:
+
+‖𝐀‖𝐹≡∑𝑖=1𝑚∑𝑗=1𝑛||𝑎𝑖𝑗||2⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯(2)
+
+Actual loss function
+In the real world applications, the Frobenius norm loss:
+
+‖𝐗𝐑−𝐘‖𝐹
+
+is often replaced by it's squared value divided by 𝑚
+:
+
+1𝑚‖𝐗𝐑−𝐘‖2𝐹
+
+where 𝑚
+ is the number of examples (rows in 𝐗
+).
+
+The same R is found when using this loss function versus the original Frobenius norm.
+The reason for taking the square is that it's easier to compute the gradient of the squared Frobenius.
+The reason for dividing by 𝑚
+ is that we're more interested in the average loss per embedding than the loss for the entire training set.
+The loss for all training set increases with more words (training examples), so taking the average helps us to track the average loss regardless of the size of the training set.
+[Optional] Detailed explanation why we use norm squared instead of the norm:
+Click for optional details
+Implementing translation mechanism described in this section.
+
+Exercise 2 - compute_loss
+Step 1: Computing the loss
+The loss function will be squared Frobenius norm of the difference between matrix and its approximation, divided by the number of training examples 𝑚
+.
+Its formula is:
+𝐿(𝑋,𝑌,𝑅)=1𝑚∑𝑖=1𝑚∑𝑗=1𝑛(𝑎𝑖𝑗)2
+where 𝑎𝑖𝑗
+ is value in 𝑖
+th row and 𝑗
+th column of the matrix 𝐗𝐑−𝐘
+.
+
+Instructions: complete the compute_loss() function
+Compute the approximation of Y by matrix multiplying X and R
+Compute difference XR - Y
+Compute the squared Frobenius norm of the difference and divide it by 𝑚
+.
+
+
+
+Exercise 3 - compute_gradient
+Step 2: Computing the gradient of loss with respect to transform matrix R
+Calculate the gradient of the loss with respect to transform matrix R.
+The gradient is a matrix that encodes how much a small change in R affect the change in the loss function.
+The gradient gives us the direction in which we should decrease R to minimize the loss.
+𝑚
+  is the number of training examples (number of rows in  𝑋
+ ).
+The formula for the gradient of the loss function  𝐿(𝑋,𝑌,𝑅)
+  is:
+𝑑𝑑𝑅𝐿(𝑋,𝑌,𝑅)=𝑑𝑑𝑅(1𝑚‖𝑋𝑅−𝑌‖2𝐹)=2𝑚𝑋𝑇(𝑋𝑅−𝑌).
+Step 3: Finding the optimal R with Gradient Descent Algorithm
+Gradient Descent
+Gradient descent is an iterative algorithm which is used in searching for the optimum of the function.
+
+Earlier, we've mentioned that the gradient of the loss with respect to the matrix encodes how much a tiny change in some coordinate of that matrix affect the change of loss function.
+Gradient descent uses that information to iteratively change matrix R until we reach a point where the loss is minimized.
+Training with a fixed number of iterations
+Most of the time we iterate for a fixed number of training steps rather than iterating until the loss falls below a threshold.
+
+OPTIONAL: explanation for fixed number of iterations
+click here for detailed discussion
+Pseudocode:
+
+Calculate gradient 𝑔
+ of the loss with respect to the matrix 𝑅
+.
+Update 𝑅
+ with the formula:
+𝑅new=𝑅old−𝛼𝑔
+Where 𝛼
+ is the learning rate, which is a scalar.
+
+Learning Rate
+The learning rate or "step size" 𝛼
+ is a coefficient which decides how much we want to change 𝑅
+ in each step.
+If we change 𝑅
+ too much, we could skip the optimum by taking too large of a step.
+If we make only small changes to 𝑅
+, we will need many steps to reach the optimum.
+Learning rate 𝛼
+ is used to control those changes.
+Values of 𝛼
+ are chosen depending on the problem, and we'll use learning_rate=0.0003
+ as the default value for our algorithm.
+
+Exercise 4 - align_embeddings  Calculate Transformation matrix R
+Using just the training set, find the transformation matrix  𝐑
+  by calling the function align_embeddings().  2.2 - Testing the Translation
+k-Nearest Neighbors Algorithm
+k-Nearest neighbors algorithm
+
+k-NN is a method which takes a vector as input and finds the other vectors in the dataset that are closest to it.
+The 'k' is the number of "nearest neighbors" to find (e.g. k=2 finds the closest two neighbors).
+Searching for the Translation Embedding
+Since we're approximating the translation function from English to French embeddings by a linear transformation matrix  𝐑
+ , most of the time we won't get the exact embedding of a French word when we transform embedding  𝐞
+  of some particular English word into the French embedding space.
+
+This is where  𝑘
+ -NN becomes really useful! By using  1
+ -NN with  𝐞𝐑
+  as input, we can search for an embedding  𝐟
+  (as a row) in the matrix  𝐘
+  which is the closest to the transformed vector  𝐞𝐑
+ 
+Cosine Similarity
+Cosine similarity between vectors 𝑢
+ and 𝑣
+ calculated as the cosine of the angle between them. The formula is
+
+cos(𝑢,𝑣)=𝑢⋅𝑣‖𝑢‖‖𝑣‖
+
+cos(𝑢,𝑣)
+ = 1
+ when 𝑢
+ and 𝑣
+ lie on the same line and have the same direction.
+cos(𝑢,𝑣)
+ is −1
+ when they have exactly opposite directions.
+cos(𝑢,𝑣)
+ is 0
+ when the vectors are orthogonal (perpendicular) to each other.
+Note: Distance and similarity are pretty much opposite things.
+We can obtain distance metric from cosine similarity, but the cosine similarity can't be used directly as the distance metric.
+When the cosine similarity increases (towards 1
+), the "distance" between the two vectors decreases (towards 0
+).
+We can define the cosine distance between 𝑢
+ and 𝑣
+ as
+𝑑cos(𝑢,𝑣)=1−cos(𝑢,𝑣)
+
+Exercise 5 - nearest_neighbor
+Complete the function nearest_neighbor()
+
+Inputs:
+
+Vector v,
+A set of possible nearest neighbors candidates
+k nearest neighbors to find.
+The distance metric should be based on cosine similarity.
+cosine_similarity function is already implemented and imported for you. It's arguments are two vectors and it returns the cosine of the angle between them.
+Iterate over rows in candidates, and save the result of similarities between current row and vector v in a python list. Take care that similarities are in the same order as row vectors of candidates.
+Now you can use numpy argsort to sort the indices for the rows of candidates.  3 - LSH and Document Search
+In this part of the assignment, you will implement a more efficient version of k-nearest neighbors using locality sensitive hashing. You will then apply this to document search.
+
+Process the tweets and represent each tweet as a vector (represent a document with a vector embedding).
+Use locality sensitive hashing and k nearest neighbors to find tweets that are similar to a given tweet.  
+3.1 - Getting the Document Embeddings
+Bag-of-words (BOW) Document Models
+Text documents are sequences of words.
+
+The ordering of words makes a difference. For example, sentences "Apple pie is better than pepperoni pizza." and "Pepperoni pizza is better than apple pie" have opposite meanings due to the word ordering.
+However, for some applications, ignoring the order of words can allow us to train an efficient and still effective model.
+This approach is called Bag-of-words document model.
+Document Embeddings
+Document embedding is created by summing up the embeddings of all words in the document.
+If we don't know the embedding of some word, we can ignore that word.
+
+Exercise 7 - get_document_embedding
+Complete the get_document_embedding() function.
+
+The function get_document_embedding() encodes entire document as a "document" embedding.
+It takes in a document (as a string) and a dictionary, en_embeddings
+It processes the document, and looks up the corresponding embedding of each word.
+It then sums them up and returns the sum of all word vectors of that processed tweet.  
+Exercise 8 - get_document_vecs
+Store all document vectors into a dictionary
+Now, let's store all the tweet embeddings into a dictionary. Implement get_document_vecs()3.3 - Finding the most Similar Tweets with LSH
+You will now implement locality sensitive hashing (LSH) to identify the most similar tweet.
+
+Instead of looking at all 10,000 vectors, you can just search a subset to find its nearest neighbors.
+Let's say your data points are plotted like this:
+
+alternate textFigure 3
+You can divide the vector space into regions and search within one region for nearest neighbors of a given vector.
+
+alternate textFigure 4   Choosing the number of planes
+Each plane divides the space to  2
+  parts.
+So  𝑛
+  planes divide the space into  2𝑛
+  hash buckets.
+We want to organize 10,000 document vectors into buckets so that every bucket has about   16
+  vectors.
+For that we need  1000016=625
+  buckets.
+We're interested in  𝑛
+ , number of planes, so that  2𝑛=625
+ . Now, we can calculate  𝑛=log2625=9.29≈10
+ .
+# The number of planes. We use log2(625) to have ~16 vectors/bucket.
+N_PLANES = 10
+# Number of times to repeat the hashing to improve the search.
+N_UNIVERSES = 25
+
+3.4 - Getting the Hash Number for a Vector
+For each vector, we need to get a unique number associated to that vector in order to assign it to a "hash bucket".
+
+Hyperplanes in Vector Spaces
+In 3
+-dimensional vector space, the hyperplane is a regular plane. In 2
+ dimensional vector space, the hyperplane is a line.
+Generally, the hyperplane is subspace which has dimension 1
+ lower than the original vector space has.
+A hyperplane is uniquely defined by its normal vector.
+Normal vector 𝑛
+ of the plane 𝜋
+ is the vector to which all vectors in the plane 𝜋
+ are orthogonal (perpendicular in 3
+ dimensional case).
+Using Hyperplanes to Split the Vector Space
+We can use a hyperplane to split the vector space into 2
+ parts.
+
+All vectors whose dot product with a plane's normal vector is positive are on one side of the plane.
+All vectors whose dot product with the plane's normal vector is negative are on the other side of the plane.
+Encoding Hash Buckets
+For a vector, we can take its dot product with all the planes, then encode this information to assign the vector to a single hash bucket.
+When the vector is pointing to the opposite side of the hyperplane than normal, encode it by 0.
+Otherwise, if the vector is on the same side as the normal vector, encode it by 1.
+If you calculate the dot product with each plane in the same order for every vector, you've encoded each vector's unique hash ID as a binary number, like [0, 1, 1, ... 0].
+
+Exercise 9 - hash_value_of_vector
+We've initialized hash table hashes for you. It is list of N_UNIVERSES matrices, each describes its own hash table. Each matrix has N_DIMS rows and N_PLANES columns. Every column of that matrix is a N_DIMS-dimensional normal vector for each of N_PLANES hyperplanes which are used for creating buckets of the particular hash table.
+
+Exercise: Your task is to complete the function hash_value_of_vector which places vector v in the correct hash bucket.
+
+First multiply your vector v, with a corresponding plane. This will give you a vector of dimension (1,N_planes)
+.
+You will then convert every element in that vector to 0 or 1.
+You create a hash vector by doing the following: if the element is negative, it becomes a 0, otherwise you change it to a 1.
+You then compute the unique number for the vector by iterating over N_PLANES
+Then you multiply 2𝑖
+ times the corresponding bit (0 or 1).
+You will then store that sum in the variable hash_value.
+Intructions: Create a hash for the vector in the function below. Use this formula:
+
+ℎ𝑎𝑠ℎ=∑𝑖=0𝑁−1(2𝑖×ℎ𝑖)
+
+Create the sets of planes
+Create multiple (25) sets of planes (the planes that divide up the region).
+You can think of these as 25 separate ways of dividing up the vector space with a different set of planes.
+Each element of this list contains a matrix with 300 rows (the word vector have 300 dimensions), and 10 columns (there are 10 planes in each "universe"). 3.5 - Creating a Hash Table
+
+Exercise 10 - make_hash_table
+Given that you have a unique number for each vector (or tweet), You now want to create a hash table. You need a hash table, so that given a hash_id, you can quickly look up the corresponding vectors. This allows you to reduce your search by a significant amount of time.
+
+alternate text
+We have given you the make_hash_table function, which maps the tweet vectors to a bucket and stores the vector there. It returns the hash_table and the id_table. The id_table allows you know which vector in a certain bucket corresponds to what tweet. 3.6 - Creating all Hash Tables
+You can now hash your vectors and store them in a hash table that would allow you to quickly look up and search for similar vectors. Run the cell below to create the hashes. By doing so, you end up having several tables which have all the vectors. Given a vector, you then identify the buckets in all the tables. You can then iterate over the buckets and consider much fewer vectors. The more tables you use, the more accurate your lookup will be, but also the longer it will take.  Exercise 11 - approximate_knn
+Implement approximate K nearest neighbors using locality sensitive hashing, to search for documents that are similar to a given document at the index doc_id.
+
+Inputs
+doc_id is the index into the document list all_tweets.
+v is the document vector for the tweet in all_tweets at index doc_id.
+planes_l is the list of planes (the global variable created earlier).
+k is the number of nearest neighbors to search for.
+num_universes_to_use: to save time, we can use fewer than the total number of available universes. By default, it's set to N_UNIVERSES, which is  25
+  for this assignment.
+hash_tables: list with hash tables for each universe.
+id_tables: list with id tables for each universe.
+The approximate_knn function finds a subset of candidate vectors that are in the same "hash bucket" as the input vector 'v'. Then it performs the usual k-nearest neighbors search on this subset (instead of searching through all 10,000 tweets). 
